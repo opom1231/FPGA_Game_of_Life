@@ -37,6 +37,7 @@ module ssd1331_init(
     
     );
     
+    // Instruction ROM
     reg [7:0] init_rom [0:44];
     
     // Internal control signals
@@ -47,8 +48,12 @@ module ssd1331_init(
     reg spi_start;
     wire [7:0] spi_data_in;
     wire spi_status;
+    reg [21:0] delay_cnt;
     
-     spi_master master_inst (
+    // SPI Data Input
+    assign spi_data_in = init_rom[rom_index];
+    
+    spi_master master_inst (
         .clk(clk),
         .rst(rst),
         .start(spi_start),
@@ -58,11 +63,7 @@ module ssd1331_init(
         .oled_sclk(oled_sclk),
         .oled_sdin(oled_sdin)
     );
-    
-    // States 
-    
-    localparam STATE_POWER_UP = 3'd0;
-    
+      
     initial begin
         // Step 7: Unlock
         init_rom[0] = 8'hFD; init_rom[1] = 8'h12;
@@ -110,6 +111,95 @@ module ssd1331_init(
         
     end
 
+    // States 
+    localparam STATE_POWER_UP = 3'd0; 
+    localparam STATE_RESET_LOW = 3'd1;
+    localparam STATE_RESET_HIGH = 3'd2;
+    localparam STATE_SEND_BYTE = 3'd3;
+    localparam STATE_WAIT_SPI = 3'd4;
+    localparam STATE_WAIT_VCC = 3'd5;
+    
+    always @(posedge clk) begin
+           // Entry point
+           if (rst) begin
+             state <= STATE_POWER_UP;
+             rom_index <= 0;
+             spi_start <= 0;
+             delay_cnt <= 0;
+             
+             // Default pin values
+             oled_res <= 1;
+             oled_dc <= 0;
+             oled_vccen <= 0;
+             oled_pmoden <= 0;
+           end
+           
+           else begin
+                case (state)
+                     STATE_POWER_UP: begin
+                        oled_pmoden <= 1;
+                        
+                        if (delay_cnt == 2000000) begin // 20ms @ 100 MHz
+                            state <= STATE_RESET_LOW;
+                            delay_cnt <= 0;
+                        end else begin 
+                            delay_cnt <= delay_cnt + 1;
+                        end
+                     end
+                     
+                     STATE_RESET_LOW: begin
+                        oled_res <= 0;
+                        
+                        if (delay_cnt == 300) begin
+                            state <= STATE_RESET_HIGH;
+                            delay_cnt <= 0;
+                        end else begin
+                            delay_cnt <= delay_cnt + 1;
+                        end
+                     end
+                     
+                     STATE_RESET_HIGH: begin
+                        oled_res <= 1;
+                        
+                        if (delay_cnt == 300) begin
+                            state <= STATE_SEND_BYTE;
+                            delay_cnt <= 0;
+                        end else begin
+                            delay_cnt <= delay_cnt + 1;
+                        end
+                     end
+                     
+                     // Instruction loading
+                     
+                     STATE_SEND_BYTE: begin
+                        // Check if ready
+                        if(spi_status == 0) begin
+                            spi_start <= 1; // Allows spi to process first byte
+                            state <= STATE_WAIT_SPI;
+                        end 
+                     
+                     end
+                     
+                     STATE_WAIT_SPI: begin
+                        spi_start <= 0; // // spi_master is processing the byte
+                        
+                        if (rom_index == 43) begin
+                            state <= STATE_WAIT_VCC;
+                        end
+                        
+                        if(spi_status == 0) begin // Poll until entire byte is sent
+                            state <= STATE_SEND_BYTE;
+                            rom_index <= rom_index + 1;
+                        end else begin 
+                            state <= STATE_WAIT_SPI;
+                        end
+                     
+                     end
+                endcase
+           end
+        
+        end
+    
     
      
 endmodule
