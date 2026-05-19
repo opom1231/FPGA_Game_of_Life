@@ -117,7 +117,9 @@ module ssd1331_init(
     localparam STATE_RESET_HIGH = 3'd2;
     localparam STATE_SEND_BYTE = 3'd3;
     localparam STATE_WAIT_SPI = 3'd4;
-    localparam STATE_WAIT_VCC = 3'd5;
+    localparam STATE_SPI_BUFFER = 3'd5;
+    localparam STATE_WAIT_VCC = 3'd6;
+    localparam STATE_DONE = 3'd7;
     
     always @(posedge clk) begin
            // Entry point
@@ -175,26 +177,53 @@ module ssd1331_init(
                         // Check if ready
                         if(spi_status == 0) begin
                             spi_start <= 1; // Allows spi to process first byte
-                            state <= STATE_WAIT_SPI;
-                        end 
+                            state <= STATE_SPI_BUFFER;
+                        end
+                     end
                      
+                     STATE_SPI_BUFFER: begin
+                        // Hold spi_start at 1 cycle so master can stabilize 
+                        spi_start <= 1;
+                        state <= STATE_WAIT_SPI;
                      end
                      
                      STATE_WAIT_SPI: begin
                         spi_start <= 0; // // spi_master is processing the byte
                         
-                        if (rom_index == 43) begin
-                            state <= STATE_WAIT_VCC;
-                        end
-                        
                         if(spi_status == 0) begin // Poll until entire byte is sent
-                            state <= STATE_SEND_BYTE;
-                            rom_index <= rom_index + 1;
+                            
+                            if (rom_index == 43) begin
+                                state <= STATE_WAIT_VCC;
+                                rom_index <= rom_index + 1; // Prepare for last instruction (display on)
+                            end
+                            
+                            else if (rom_index == 44) begin
+                                state <= STATE_DONE;
+                            end
+                            
+                            else begin
+                                state <= STATE_SEND_BYTE;
+                                rom_index <= rom_index + 1;
+                            end
+                            
                         end else begin 
                             state <= STATE_WAIT_SPI;
                         end
-                     
                      end
+                     
+                     STATE_WAIT_VCC: begin
+                        oled_vccen <= 1;
+                        if (delay_cnt == 2500000) begin
+                            state <= STATE_SEND_BYTE;
+                            delay_cnt <= 0;
+                        end else begin
+                            delay_cnt <= delay_cnt + 1;
+                        end
+                     end
+                     
+                     STATE_DONE: begin
+                        spi_start <= 0;
+                     end 
                 endcase
            end
         
