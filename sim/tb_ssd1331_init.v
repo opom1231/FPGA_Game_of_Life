@@ -48,4 +48,20 @@ module tb_ssd1331_init();
         .oled_cs(oled_cs)
     );
     
+    // 100 MHz clock
+    always #5 clk = ~clk;
+    
+    initial begin
+        clk = 0;
+        rst = 1;
+        #20;
+        rst = 0;
+        
+        #50000000;
+        
+        
+        
+        
+        $finish;
+    end
 endmodule
