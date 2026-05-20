@@ -121,7 +121,6 @@ module ssd1331_init(
              
              // Default pin values
              oled_res <= 1;
-             oled_dc <= 0;
              oled_vccen <= 0;
              oled_pmoden <= 0;
            end
