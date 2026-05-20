@@ -52,42 +52,51 @@ module oled_top(
     // Who is controlling the data/command pin
     assign oled_dc = (init_done) ? render_dc : 1'b0; // Init only sends commands
     
-    
-    // Start up sequence
+    // Handles the start up sequence
     ssd1331_init init_engine(
+        // Global inputs
         .clk(clk),
         .rst(rst),
         
+        // Direct outputs to physical board pins
         .oled_res(oled_res),
         .oled_vccen(oled_vccen),
         .oled_pmoden(oled_pmoden),
         
-        .spi_status(spi_status),
-        .spi_start(init_spi_start),
-        .init_done(init_done),
-        .spi_data_in(init_spi_data)
+        // Lines to/from the top level mux and master
+        .spi_status(spi_status), // Input driven by spi_master
+        .spi_start(init_spi_start), // Output driven to init_spi_start for start mux
+        .init_done(init_done),  // Output that determines if sequence finished or not
+        .spi_data_in(init_spi_data) // Output for data mux
         
     );
     
-    // Renders to screen
-    
+    // Renders to screen  
     ssd1331_render render_engine(
+        // Global inputs
         .clk(clk),
         .rst(rst),
-        .init_done(init_done),
-        .spi_status(spi_status),
-        .render_dc(render_dc),
-        .spi_start(render_spi_start),
-        .spi_data(render_spi_data)
+        
+        // Mux and spi_master connections
+        .init_done(init_done), // Input sent by init_engine. Are we done startup sequence?
+        .spi_status(spi_status), // Input sent by spi_master. Are we currently sending data?
+        .spi_start(render_spi_start),   // Output sent to render_spi_start for start mux
+        .spi_data(render_spi_data), // Output for data mux
+        
+        .render_dc(render_dc) // Output determined by render_engine
     );
     
     spi_master master_inst (
+        // Global inputs
         .clk(clk),
         .rst(rst),
-        .start(spi_start_mux),
-        .data_in(data_mux),
-        .status(spi_status),
-        .oled_cs(oled_cs),
+        
+        .start(spi_start_mux), // Input determined by start mux
+        .data_in(data_mux), // Input determined by data mux
+        
+        // Outputs from spi_master
+        .status(spi_status), 
+        .oled_cs(oled_cs), 
         .oled_sclk(oled_sclk),
         .oled_sdin(oled_sdin)
     );
