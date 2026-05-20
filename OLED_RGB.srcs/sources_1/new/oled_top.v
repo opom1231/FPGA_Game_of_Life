@@ -70,6 +70,17 @@ module oled_top(
     );
     
     // Renders to screen
+    
+    ssd1331_render render_engine(
+        .clk(clk),
+        .rst(rst),
+        .init_done(init_done),
+        .spi_status(spi_status),
+        .render_dc(render_dc),
+        .spi_start(render_spi_start),
+        .spi_data(render_spi_data)
+    );
+    
     spi_master master_inst (
         .clk(clk),
         .rst(rst),

@@ -25,15 +25,17 @@ module ssd1331_init(
     input rst,
     
     // OLED Pins
-    output reg oled_dc,
+
     output reg oled_res,
     output reg oled_vccen,
     output reg oled_pmoden,
+       
+    // Ports for top level mux switch
+    input spi_status,
+    output reg spi_start,
+    output reg init_done,
+    output [7:0] spi_data_in
     
-    // SPI Pins
-    output oled_sclk,
-    output oled_sdin,
-    output oled_cs
     
     );
     
@@ -45,24 +47,11 @@ module ssd1331_init(
     reg [2:0] state; // Current FSM state
     
     // spi_master interface
-    reg spi_start;
-    wire [7:0] spi_data_in;
-    wire spi_status;
     reg [21:0] delay_cnt;
+    
     
     // SPI Data Input
     assign spi_data_in = init_rom[rom_index];
-    
-    spi_master master_inst (
-        .clk(clk),
-        .rst(rst),
-        .start(spi_start),
-        .data_in(spi_data_in),
-        .oled_cs(oled_cs),
-        .status(spi_status),
-        .oled_sclk(oled_sclk),
-        .oled_sdin(oled_sdin)
-    );
       
     initial begin
         // Step 7: Unlock
@@ -128,6 +117,7 @@ module ssd1331_init(
              rom_index <= 0;
              spi_start <= 0;
              delay_cnt <= 0;
+             init_done <= 0;
              
              // Default pin values
              oled_res <= 1;
@@ -138,7 +128,7 @@ module ssd1331_init(
            
            else begin
                 case (state)
-                     STATE_POWER_UP: begin
+                     STATE_POWER_UP: begin // 0
                         oled_pmoden <= 1;
                         
                         if (delay_cnt == 2000000) begin // 20ms @ 100 MHz
@@ -149,7 +139,7 @@ module ssd1331_init(
                         end
                      end
                      
-                     STATE_RESET_LOW: begin
+                     STATE_RESET_LOW: begin // 1
                         oled_res <= 0;
                         
                         if (delay_cnt == 300) begin
@@ -160,7 +150,7 @@ module ssd1331_init(
                         end
                      end
                      
-                     STATE_RESET_HIGH: begin
+                     STATE_RESET_HIGH: begin // 2
                         oled_res <= 1;
                         
                         if (delay_cnt == 300) begin
@@ -173,7 +163,7 @@ module ssd1331_init(
                      
                      // Instruction loading
                      
-                     STATE_SEND_BYTE: begin
+                     STATE_SEND_BYTE: begin // 3
                         // Check if ready
                         if(spi_status == 0) begin
                             spi_start <= 1; // Allows spi to process first byte
@@ -181,13 +171,13 @@ module ssd1331_init(
                         end
                      end
                      
-                     STATE_SPI_BUFFER: begin
+                     STATE_SPI_BUFFER: begin // 4
                         // Hold spi_start at 1 cycle so master can stabilize 
                         spi_start <= 1;
                         state <= STATE_WAIT_SPI;
                      end
                      
-                     STATE_WAIT_SPI: begin
+                     STATE_WAIT_SPI: begin // 5
                         spi_start <= 0; // // spi_master is processing the byte
                         
                         if(spi_status == 0) begin // Poll until entire byte is sent
@@ -211,7 +201,7 @@ module ssd1331_init(
                         end
                      end
                      
-                     STATE_WAIT_VCC: begin
+                     STATE_WAIT_VCC: begin // 6
                         oled_vccen <= 1;
                         if (delay_cnt == 2500000) begin
                             state <= STATE_SEND_BYTE;
@@ -221,8 +211,9 @@ module ssd1331_init(
                         end
                      end
                      
-                     STATE_DONE: begin
+                     STATE_DONE: begin // 7
                         spi_start <= 0;
+                        init_done <= 1; // Finished startup sequence 
                      end 
                 endcase
            end
