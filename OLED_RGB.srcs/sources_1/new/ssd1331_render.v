@@ -36,7 +36,7 @@ module ssd1331_render(
 
     reg [4:0] state;
     
-    reg [13:0] bit_count; // We need to send a total of 12,288 bytes to control the screen every frame tick
+    reg [13:0] byte_counter; // We need to send a total of 12,288 bytes to control the screen every frame tick
     reg [20:0] frame_timer; // @60Hz we must count up to 16.67 ms per frame -> 1.67M clock cycles
     reg frame_tick;
     
@@ -50,7 +50,10 @@ module ssd1331_render(
     // States
     localparam STATE_IDLE = 3'd0;
     localparam STATE_READY = 3'd1;
+    localparam STATE_WAIT = 3'd2;
+    localparam STATE_NEXT_BYTE = 3'd3;
     
+    // Frame counter
     always @(posedge clk) begin
         if (rst) begin
             frame_timer <= 0;
@@ -60,23 +63,24 @@ module ssd1331_render(
         else if (init_done) begin
             if(frame_timer == 1666666) begin
                 frame_tick <= 1;
-                frame_timer <= 0;
+                frame_timer <= 0; 
             end 
             
             else begin
                 frame_timer <= frame_timer + 1;
-                frame_tick <= 0;
+                frame_tick <= 0; // We only want it to tick once ever 16.67 ms
             end
         end
     
     end
     
+    // State logic
     always @(posedge clk) begin
         if (rst) begin
             state <= 0;
             render_dc <= 0;
             spi_start <= 0;
-            bit_count <= 0;
+            byte_counter <= 0;
         end
         
         else begin
@@ -84,6 +88,7 @@ module ssd1331_render(
                 STATE_IDLE: begin
                     if (frame_tick) begin
                         state <= STATE_READY;
+                        byte_counter <= 0;
                     end
                     
                     else begin
@@ -95,6 +100,40 @@ module ssd1331_render(
                 STATE_READY: begin
                     render_dc <= 1; // Set dc pin on board on
                     spi_start <= 1;
+                    
+                    if (byte_counter[0] == 0) begin
+                        spi_data <= 8'h07;   // load high byte (even)
+                    end else begin
+                        spi_data <= 8'hE0;   // load low byte (odd)
+                    end
+                    
+                    state <= STATE_WAIT; // We need to buffer for a cycle while data transfer starts
+                end
+                
+                STATE_WAIT: begin
+                    spi_start <= 0; // About to process an instruction 
+
+                    if(spi_status == 0) begin // spi_master finished processing the byte
+                        state <= STATE_NEXT_BYTE;
+                    end
+                    
+                    else begin
+                        state <= STATE_WAIT;
+                    end
+                end 
+                
+                STATE_NEXT_BYTE: begin
+                    if(byte_counter == 12287) begin
+                        state <= STATE_IDLE;    
+                    end
+                    
+                    else begin
+                        byte_counter <= byte_counter + 1;
+                        state <= STATE_READY;
+                    end
+                    
+                    
+                
                 end
             
             endcase
