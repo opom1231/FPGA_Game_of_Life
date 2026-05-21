@@ -24,6 +24,7 @@ module ssd1331_render(
     // global
     input clk,
     input rst,
+    input btn,
     
     // Obtained by render_engine in oled_top.v
     input init_done, // Needs to know when initialization is done
@@ -44,11 +45,23 @@ module ssd1331_render(
     reg [20:0] frame_timer; // @60Hz we must count up to 16.67 ms per frame -> 1.67M clock cycles
     reg frame_tick;
     
+    wire color_mux;
+    
+    reg btn_ff1, btn_ff2;
+    reg [15:0] color_palette [0:3];
+    reg [1:0] color_index;
+    wire [15:0] current_color = color_palette[color_index];
+    
     // Default values
     initial begin
         render_dc = 1'b1;
         spi_start = 1'b0;
         spi_data = 8'h00;
+        
+        color_palette[0] = 16'h0000; // Black
+        color_palette[1] = 16'hF800; // Red
+        color_palette[2] = 16'h07E0; // Green
+        color_palette[3] = 16'h001F; // Blue
     end
     
     // States
@@ -57,6 +70,29 @@ module ssd1331_render(
     localparam STATE_PULSE = 3'd2;
     localparam STATE_WAIT = 3'd3;
     localparam STATE_NEXT_BYTE = 3'd4;
+    
+    // Buton edge detection
+    always @(posedge clk) begin
+        if (rst) begin
+            btn_ff1 <= 0;
+            btn_ff2 <= 0;
+        end else begin 
+            btn_ff1 <= btn; // Sample per posedge
+            btn_ff2 <= btn_ff1; // Keep track of the last press
+        end
+    end
+    
+    wire btn_pulse = (btn_ff1 == 1) && (btn_ff2 == 0); // Send pulse when we go from 0 to 1
+    
+    always @(posedge clk) begin
+        if(rst) begin 
+            color_index <= 0;
+        end
+        
+        else if (btn_pulse) begin
+            color_index <= color_index + 1;
+        end
+    end
     
     // Frame counter
     always @(posedge clk) begin
@@ -107,9 +143,9 @@ module ssd1331_render(
                     spi_start <= 1;
                     
                     if (byte_counter[0] == 0) begin
-                        spi_data <= 8'h00;   // load high byte (even)
+                        spi_data <= current_color[15:8];   // load high byte (even)
                     end else begin
-                        spi_data <= 8'h1F;   // load low byte (odd)
+                        spi_data <= current_color[7:0];   // load low byte (odd)
                     end
                     
                     state <= STATE_PULSE; // We need to buffer for a cycle while data transfer starts

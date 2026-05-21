@@ -23,6 +23,7 @@
 module oled_top(
     input clk,
     input rst,
+    input btn,
     
     output oled_dc,
     output oled_res,
@@ -76,6 +77,7 @@ module oled_top(
         // Global inputs
         .clk(clk),
         .rst(rst),
+        .btn(btn),
         
         // Mux and spi_master connections
         .init_done(init_done), // Input sent by init_engine. Are we done startup sequence?
