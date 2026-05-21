@@ -52,7 +52,7 @@ module ssd1331_init(
     reg [2:0] state; // Current FSM state
     
     // spi_master interface
-    reg [21:0] delay_cnt;
+    reg [22:0] delay_cnt;
     
     
     // SPI Data Input

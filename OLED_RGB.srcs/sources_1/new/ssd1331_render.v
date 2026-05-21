@@ -54,8 +54,9 @@ module ssd1331_render(
     // States
     localparam STATE_IDLE = 3'd0;
     localparam STATE_READY = 3'd1;
-    localparam STATE_WAIT = 3'd2;
-    localparam STATE_NEXT_BYTE = 3'd3;
+    localparam STATE_PULSE = 3'd2;
+    localparam STATE_WAIT = 3'd3;
+    localparam STATE_NEXT_BYTE = 3'd4;
     
     // Frame counter
     always @(posedge clk) begin
@@ -106,12 +107,18 @@ module ssd1331_render(
                     spi_start <= 1;
                     
                     if (byte_counter[0] == 0) begin
-                        spi_data <= 8'h07;   // load high byte (even)
+                        spi_data <= 8'h00;   // load high byte (even)
                     end else begin
-                        spi_data <= 8'hE0;   // load low byte (odd)
+                        spi_data <= 8'h1F;   // load low byte (odd)
                     end
                     
-                    state <= STATE_WAIT; // We need to buffer for a cycle while data transfer starts
+                    state <= STATE_PULSE; // We need to buffer for a cycle while data transfer starts
+                end
+                
+                STATE_PULSE: begin
+                    spi_start <= 0;
+                    state <= STATE_WAIT;
+                
                 end
                 
                 STATE_WAIT: begin
