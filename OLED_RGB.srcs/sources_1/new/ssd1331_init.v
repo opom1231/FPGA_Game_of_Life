@@ -38,6 +38,11 @@ module ssd1331_init(
     
     
     );
+    // For testing
+    parameter POWER_UP_MAX = 22'd2000000;
+    parameter VCC_WAIT_MAX = 22'd2500000;
+    parameter RESET_MAX = 300;
+    
     
     // Instruction ROM
     reg [7:0] init_rom [0:44];
@@ -130,7 +135,7 @@ module ssd1331_init(
                      STATE_POWER_UP: begin // 0
                         oled_pmoden <= 1;
                         
-                        if (delay_cnt == 2000000) begin // 20ms @ 100 MHz
+                        if (delay_cnt == POWER_UP_MAX) begin // 20ms @ 100 MHz
                             state <= STATE_RESET_LOW;
                             delay_cnt <= 0;
                         end else begin 
@@ -141,7 +146,7 @@ module ssd1331_init(
                      STATE_RESET_LOW: begin // 1
                         oled_res <= 0;
                         
-                        if (delay_cnt == 300) begin
+                        if (delay_cnt == RESET_MAX) begin
                             state <= STATE_RESET_HIGH;
                             delay_cnt <= 0;
                         end else begin
@@ -152,7 +157,7 @@ module ssd1331_init(
                      STATE_RESET_HIGH: begin // 2
                         oled_res <= 1;
                         
-                        if (delay_cnt == 300) begin
+                        if (delay_cnt == RESET_MAX) begin
                             state <= STATE_SEND_BYTE;
                             delay_cnt <= 0;
                         end else begin
@@ -202,7 +207,7 @@ module ssd1331_init(
                      
                      STATE_WAIT_VCC: begin // 6
                         oled_vccen <= 1;
-                        if (delay_cnt == 2500000) begin
+                        if (delay_cnt == VCC_WAIT_MAX) begin
                             state <= STATE_SEND_BYTE;
                             delay_cnt <= 0;
                         end else begin

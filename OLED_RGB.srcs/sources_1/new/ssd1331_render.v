@@ -33,7 +33,11 @@ module ssd1331_render(
     output reg spi_start, // Controls SPI start mux
     output reg [7:0] spi_data // Sends pixel data into mux 
     );
-
+    
+    // For testing
+    parameter FRAME_MAX = 21'd1666666;
+    parameter BYTE_MAX = 14'd12287;
+    
     reg [4:0] state;
     
     reg [13:0] byte_counter; // We need to send a total of 12,288 bytes to control the screen every frame tick
@@ -61,7 +65,7 @@ module ssd1331_render(
         end
         
         else if (init_done) begin
-            if(frame_timer == 1666666) begin
+            if(frame_timer == FRAME_MAX) begin
                 frame_tick <= 1;
                 frame_timer <= 0; 
             end 
@@ -123,7 +127,7 @@ module ssd1331_render(
                 end 
                 
                 STATE_NEXT_BYTE: begin
-                    if(byte_counter == 12287) begin
+                    if(byte_counter == BYTE_MAX) begin
                         state <= STATE_IDLE;    
                     end
                     
