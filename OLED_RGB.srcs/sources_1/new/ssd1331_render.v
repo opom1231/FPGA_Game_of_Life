@@ -130,9 +130,7 @@ module ssd1331_render(
                     else begin
                         byte_counter <= byte_counter + 1;
                         state <= STATE_READY;
-                    end
-                    
-                    
+                    end 
                 
                 end
             
