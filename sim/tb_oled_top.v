@@ -44,13 +44,13 @@ module tb_oled_top();
     );
     
     // Redefining clock cycle parameters 
-    defparam uut.render_engine.FRAME_MAX = 21'd10; // 10 cylces instead of 1.6M
+    //defparam uut.render_engine.FRAME_MAX = 21'd10; // 10 cylces instead of 1.6M
     
-    defparam uut.init_engine.POWER_UP_MAX = 22'd10; // 10 cycles instead of 2M
-    defparam uut.init_engine.VCC_WAIT_MAX = 22'd10; // 10 cycles instead of 2.5M
+    //defparam uut.init_engine.POWER_UP_MAX = 22'd10; // 10 cycles instead of 2M
+    //defparam uut.init_engine.VCC_WAIT_MAX = 22'd10; // 10 cycles instead of 2.5M
     
-    defparam uut.render_engine.BYTE_MAX = 14'd3;
-    defparam uut.init_engine.RESET_MAX = 5;
+    //defparam uut.render_engine.BYTE_MAX = 14'd3;
+    //defparam uut.init_engine.RESET_MAX = 5;
     
     // 100MHz clock, 10ns period
     always #5 clk = ~clk;
@@ -61,7 +61,7 @@ module tb_oled_top();
         #40; // hold for 40ns
         rst = 0;
         
-        #1500000; // 
+        #1500000; 
         $finish;
     end
     

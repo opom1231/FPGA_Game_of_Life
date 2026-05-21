@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="tb_oled_top_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="tb_oled_top" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="375,966.834 ns"></ZoomStartTime>
+      <ZoomEndTime time="378,036.835 ns"></ZoomEndTime>
+      <Cursor1Time time="376,752.834 ns"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="311"></NameColumnWidth>
+      <ValueColumnWidth column_width="122"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="17" />
+   <wvobject fp_name="/tb_oled_top/clk" type="logic">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_oled_top/rst" type="logic">
+      <obj_property name="ElementShortName">rst</obj_property>
+      <obj_property name="ObjectShortName">rst</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_oled_top/oled_dc" type="logic">
+      <obj_property name="ElementShortName">oled_dc</obj_property>
+      <obj_property name="ObjectShortName">oled_dc</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_oled_top/oled_res" type="logic">
+      <obj_property name="ElementShortName">oled_res</obj_property>
+      <obj_property name="ObjectShortName">oled_res</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_oled_top/oled_vccen" type="logic">
+      <obj_property name="ElementShortName">oled_vccen</obj_property>
+      <obj_property name="ObjectShortName">oled_vccen</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_oled_top/oled_pmoden" type="logic">
+      <obj_property name="ElementShortName">oled_pmoden</obj_property>
+      <obj_property name="ObjectShortName">oled_pmoden</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_oled_top/oled_sclk" type="logic">
+      <obj_property name="ElementShortName">oled_sclk</obj_property>
+      <obj_property name="ObjectShortName">oled_sclk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_oled_top/oled_sdin" type="logic">
+      <obj_property name="ElementShortName">oled_sdin</obj_property>
+      <obj_property name="ObjectShortName">oled_sdin</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_oled_top/oled_cs" type="logic">
+      <obj_property name="ElementShortName">oled_cs</obj_property>
+      <obj_property name="ObjectShortName">oled_cs</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_oled_top/uut/init_engine/state" type="array">
+      <obj_property name="ElementShortName">state[2:0]</obj_property>
+      <obj_property name="ObjectShortName">state[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_oled_top/uut/init_engine/rom_index" type="array">
+      <obj_property name="ElementShortName">rom_index[5:0]</obj_property>
+      <obj_property name="ObjectShortName">rom_index[5:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_oled_top/uut/render_engine/state" type="array">
+      <obj_property name="ElementShortName">state[4:0]</obj_property>
+      <obj_property name="ObjectShortName">state[4:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_oled_top/uut/render_engine/byte_counter" type="array">
+      <obj_property name="ElementShortName">byte_counter[13:0]</obj_property>
+      <obj_property name="ObjectShortName">byte_counter[13:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_oled_top/uut/init_engine/spi_status" type="logic">
+      <obj_property name="ElementShortName">spi_status</obj_property>
+      <obj_property name="ObjectShortName">spi_status</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_oled_top/uut/master_inst/data_in" type="array">
+      <obj_property name="ElementShortName">data_in[7:0]</obj_property>
+      <obj_property name="ObjectShortName">data_in[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_oled_top/uut/master_inst/bit_count" type="array">
+      <obj_property name="ElementShortName">bit_count[3:0]</obj_property>
+      <obj_property name="ObjectShortName">bit_count[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_oled_top/uut/init_engine/init_done" type="logic">
+      <obj_property name="ElementShortName">init_done</obj_property>
+      <obj_property name="ObjectShortName">init_done</obj_property>
+   </wvobject>
+</wave_config>

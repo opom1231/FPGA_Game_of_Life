@@ -84,6 +84,7 @@ module ssd1331_render(
     
     wire btn_pulse = (btn_ff1 == 1) && (btn_ff2 == 0); // Send pulse when we go from 0 to 1
     
+    // Color index switching
     always @(posedge clk) begin
         if(rst) begin 
             color_index <= 0;
