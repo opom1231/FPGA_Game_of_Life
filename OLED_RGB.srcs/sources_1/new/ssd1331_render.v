@@ -44,6 +44,8 @@ module ssd1331_render(
     reg [13:0] byte_counter; // We need to send a total of 12,288 bytes to control the screen every frame tick
     reg [20:0] frame_timer; // @60Hz we must count up to 16.67 ms per frame -> 1.67M clock cycles
     reg frame_tick;
+    
+    reg [15:0] lfsr;
        
     // Default values
     initial begin
@@ -60,7 +62,17 @@ module ssd1331_render(
     localparam STATE_WAIT = 3'd3;
     localparam STATE_NEXT_BYTE = 3'd4;
     
+    // "Random" pixel generator
+    always @(posedge clk) begin
+        if (rst) begin
+            lfsr <= 16'h2A30; // Non-zero seed
+        end
+        else if (state == STATE_NEXT_BYTE && byte_counter[0] == 1) begin
+            lfsr <= (lfsr >> 1) ^ (-(lfsr & 1)& 16'hB400);
+        end
     
+    end
+        
     // Frame counter
     always @(posedge clk) begin
         if (rst) begin
@@ -110,9 +122,9 @@ module ssd1331_render(
                     spi_start <= 1;
                     
                     if (byte_counter[0] == 0) begin
-                        spi_data <= current_color[15:8];   // load high byte (even)
+                        spi_data <= lfsr[15:8];   // load high byte (even)
                     end else begin
-                        spi_data <= current_color[7:0];   // load low byte (odd)
+                        spi_data <= lfsr[7:0];   // load low byte (odd)
                     end
                     
                     state <= STATE_PULSE; // We need to buffer for a cycle while data transfer starts
