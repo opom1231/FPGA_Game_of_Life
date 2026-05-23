@@ -39,18 +39,21 @@ module ssd1331_render(
     parameter FRAME_MAX = 21'd1666666;
     parameter BYTE_MAX = 14'd12287;
     
-    reg [4:0] state;
+    reg [2:0] state;
     
     reg [13:0] byte_counter; // We need to send a total of 12,288 bytes to control the screen every frame tick
     reg [20:0] frame_timer; // @60Hz we must count up to 16.67 ms per frame -> 1.67M clock cycles
     reg frame_tick;
     
-    wire color_mux;
+    reg [6:0] pixel_x; // Width 96 pixels
+    reg [5:0] pixel_y; // Height 64 pixels
     
-    reg btn_ff1, btn_ff2;
-    reg [15:0] color_palette [0:3];
-    reg [1:0] color_index;
-    wire [15:0] current_color = color_palette[color_index];
+//    wire color_mux;
+    
+//    reg btn_ff1, btn_ff2;
+//    reg [15:0] color_palette [0:3];
+//    reg [1:0] color_index;
+//    wire [15:0] current_color = color_palette[color_index];
     
     // Default values
     initial begin
@@ -58,10 +61,13 @@ module ssd1331_render(
         spi_start = 1'b0;
         spi_data = 8'h00;
         
-        color_palette[0] = 16'h0000; // Black
-        color_palette[1] = 16'hF800; // Red
-        color_palette[2] = 16'h07E0; // Green
-        color_palette[3] = 16'h001F; // Blue
+        pixel_x = 0;
+        pixel_y = 0;
+        
+//        color_palette[0] = 16'h0000; // Black
+//        color_palette[1] = 16'hF800; // Red
+//        color_palette[2] = 16'h07E0; // Green
+//        color_palette[3] = 16'h001F; // Blue
     end
     
     // States
@@ -71,29 +77,29 @@ module ssd1331_render(
     localparam STATE_WAIT = 3'd3;
     localparam STATE_NEXT_BYTE = 3'd4;
     
-    // Buton edge detection
-    always @(posedge clk) begin
-        if (rst) begin
-            btn_ff1 <= 0;
-            btn_ff2 <= 0;
-        end else begin 
-            btn_ff1 <= btn; // Sample per posedge
-            btn_ff2 <= btn_ff1; // Keep track of the last press
-        end
-    end
+//    // Buton edge detection
+//    always @(posedge clk) begin
+//        if (rst) begin
+//            btn_ff1 <= 0;
+//            btn_ff2 <= 0;
+//        end else begin 
+//            btn_ff1 <= btn; // Sample per posedge
+//            btn_ff2 <= btn_ff1; // Keep track of the last press
+//        end
+//    end
     
-    wire btn_pulse = (btn_ff1 == 1) && (btn_ff2 == 0); // Send pulse when we go from 0 to 1
+//    wire btn_pulse = (btn_ff1 == 1) && (btn_ff2 == 0); // Send pulse when we go from 0 to 1
     
-    // Color index switching
-    always @(posedge clk) begin
-        if(rst) begin 
-            color_index <= 0;
-        end
+//    // Color index switching
+//    always @(posedge clk) begin
+//        if(rst) begin 
+//            color_index <= 0;
+//        end
         
-        else if (btn_pulse) begin
-            color_index <= color_index + 1;
-        end
-    end
+//        else if (btn_pulse) begin
+//            color_index <= color_index + 1;
+//        end
+//    end
     
     // Frame counter
     always @(posedge clk) begin
@@ -123,6 +129,8 @@ module ssd1331_render(
             render_dc <= 0;
             spi_start <= 0;
             byte_counter <= 0;
+            pixel_x <= 0;
+            pixel_y <= 0;
         end
         
         else begin
@@ -131,6 +139,8 @@ module ssd1331_render(
                     if (frame_tick) begin
                         state <= STATE_READY;
                         byte_counter <= 0;
+                        pixel_x <= 0;
+                        pixel_y <= 0;
                     end
                     
                     else begin
@@ -143,10 +153,21 @@ module ssd1331_render(
                     render_dc <= 1; // Set dc pin on board on
                     spi_start <= 1;
                     
-                    if (byte_counter[0] == 0) begin
-                        spi_data <= current_color[15:8];   // load high byte (even)
-                    end else begin
-                        spi_data <= current_color[7:0];   // load low byte (odd)
+                    if(pixel_x == 0 || pixel_x == 95 || pixel_y == 0 || pixel_y == 63) begin // Check for the border pixels
+                        if (byte_counter[0] == 0) begin
+                            spi_data <= 8'hFF; // High byte (even)
+                        end else begin
+                            spi_data <= 8'hFF; // Low byte (odd)
+                        end
+                    end
+                    
+                    // Drawing the background
+                    else begin
+                        if (byte_counter[0] == 0) begin
+                            spi_data <= 8'h00;
+                        end else begin
+                            spi_data <= 8'h1F;
+                        end
                     end
                     
                     state <= STATE_PULSE; // We need to buffer for a cycle while data transfer starts
@@ -178,12 +199,18 @@ module ssd1331_render(
                     else begin
                         byte_counter <= byte_counter + 1;
                         state <= STATE_READY;
-                    end 
-                
+                        
+                        if (byte_counter[0] == 1) begin // full two bytes sent (pixel)
+                            if (pixel_x == 7'd95) begin // Reach far right end
+                                pixel_x <= 0; 
+                                pixel_y <= pixel_y + 1; // Like a typewriter go to the far left and down one step
+                            end else begin
+                                pixel_x <= pixel_x + 1;
+                            end
+                        end    
+                    end
                 end
-            
             endcase
-       
         end        
         
     end
