@@ -23,7 +23,10 @@
 module oled_top(
     input clk,
     input rst,
-    input btn,
+    input btnU,
+    input btnD,
+    input btnL,
+    input btnR,
     
     output oled_dc,
     output oled_res,
@@ -77,8 +80,10 @@ module oled_top(
         // Global inputs
         .clk(clk),
         .rst(rst),
-        .btn(btn),
-        
+        .btnU(btnU),
+        .btnR(btnR),
+        .btnL(btnL),
+        .btnD(btnD),
         // Mux and spi_master connections
         .init_done(init_done), // Input sent by init_engine. Are we done startup sequence?
         .spi_status(spi_status), // Input sent by spi_master. Are we currently sending data?

@@ -24,7 +24,10 @@ module ssd1331_render(
     // global
     input clk,
     input rst,
-    input btn,
+    input btnU,
+    input btnD,
+    input btnL,
+    input btnR,
     
     // Obtained by render_engine in oled_top.v
     input init_done, // Needs to know when initialization is done
@@ -45,15 +48,23 @@ module ssd1331_render(
     reg [20:0] frame_timer; // @60Hz we must count up to 16.67 ms per frame -> 1.67M clock cycles
     reg frame_tick;
     
+    // Pixel Coords
     reg [6:0] pixel_x; // Width 96 pixels
     reg [5:0] pixel_y; // Height 64 pixels
     
-//    wire color_mux;
+    // Moveable block
+    reg [6:0] box_x;
+    reg [5:0] box_y;
     
-//    reg btn_ff1, btn_ff2;
-//    reg [15:0] color_palette [0:3];
-//    reg [1:0] color_index;
-//    wire [15:0] current_color = color_palette[color_index];
+    // Up
+    reg btnU_ff1, btnU_ff2;
+    // Down
+    reg btnD_ff1, btnD_ff2;
+    // Left
+    reg btnL_ff1, btnL_ff2;
+    // Right
+    reg btnR_ff1, btnR_ff2;
+
     
     // Default values
     initial begin
@@ -64,10 +75,10 @@ module ssd1331_render(
         pixel_x = 0;
         pixel_y = 0;
         
-//        color_palette[0] = 16'h0000; // Black
-//        color_palette[1] = 16'hF800; // Red
-//        color_palette[2] = 16'h07E0; // Green
-//        color_palette[3] = 16'h001F; // Blue
+        // Center player
+        box_x = 7'd48;
+        box_y = 6'd32;
+
     end
     
     // States
@@ -77,29 +88,26 @@ module ssd1331_render(
     localparam STATE_WAIT = 3'd3;
     localparam STATE_NEXT_BYTE = 3'd4;
     
-//    // Buton edge detection
-//    always @(posedge clk) begin
-//        if (rst) begin
-//            btn_ff1 <= 0;
-//            btn_ff2 <= 0;
-//        end else begin 
-//            btn_ff1 <= btn; // Sample per posedge
-//            btn_ff2 <= btn_ff1; // Keep track of the last press
-//        end
-//    end
+    // Buton edge detection
+    always @(posedge clk) begin
+        if (rst) begin
+            btnU_ff1 <= 0; btnU_ff2 <= 0;
+            btnD_ff1 <= 0; btnD_ff2 <= 0;
+            btnL_ff1 <= 0; btnL_ff2 <= 0;
+            btnR_ff1 <= 0; btnR_ff2 <= 0;
+            
+        end else begin 
+            btnU_ff1 <= btnU; btnU_ff2 <= btnU_ff1; // Sample button press and keep track of the last press
+            btnD_ff1 <= btnD; btnD_ff2 <= btnD_ff1;
+            btnL_ff1 <= btnL; btnL_ff2 <= btnL_ff1;
+            btnR_ff1 <= btnR; btnR_ff2 <= btnR_ff1;     
+        end
+    end
     
-//    wire btn_pulse = (btn_ff1 == 1) && (btn_ff2 == 0); // Send pulse when we go from 0 to 1
-    
-//    // Color index switching
-//    always @(posedge clk) begin
-//        if(rst) begin 
-//            color_index <= 0;
-//        end
-        
-//        else if (btn_pulse) begin
-//            color_index <= color_index + 1;
-//        end
-//    end
+    wire btnU_pulse = (btnU_ff1 == 1) && (btnU_ff2 == 0); // Send pulse when we go from 0 to 1
+    wire btnD_pulse = (btnD_ff1 == 1) && (btnD_ff2 == 0);
+    wire btnL_pulse = (btnL_ff1 == 1) && (btnL_ff2 == 0);
+    wire btnR_pulse = (btnR_ff1 == 1) && (btnR_ff2 == 0);
     
     // Frame counter
     always @(posedge clk) begin
@@ -141,6 +149,24 @@ module ssd1331_render(
                         byte_counter <= 0;
                         pixel_x <= 0;
                         pixel_y <= 0;
+                        
+                        // Player position state
+                        if (btnR_ff1 && box_x < 90) begin
+                            box_x <= box_x + 1; // Move right
+                        end
+                        
+                        if (btnD_ff1 && box_y < 58) begin
+                            box_y <= box_y + 1; // Move Down
+                        end    
+                        
+                        if (btnU_ff1 && box_y > 6'd1) begin
+                            box_y <= box_y - 1; // Move Up
+                        end
+                        
+                        if (btnL_ff1 && box_x > 7'd1) begin
+                            box_x <= box_x - 1; // Move left
+                        end
+                            
                     end
                     
                     else begin
@@ -153,12 +179,18 @@ module ssd1331_render(
                     render_dc <= 1; // Set dc pin on board on
                     spi_start <= 1;
                     
+                    
+                    
                     if(pixel_x == 0 || pixel_x == 95 || pixel_y == 0 || pixel_y == 63) begin // Check for the border pixels
                         if (byte_counter[0] == 0) begin
                             spi_data <= 8'hFF; // High byte (even)
                         end else begin
                             spi_data <= 8'hFF; // Low byte (odd)
                         end
+                    end
+                    
+                    else if ((pixel_x >= box_x && pixel_x <= box_x + 3) && (pixel_y >= box_y && pixel_y <= box_y + 3)) begin
+                        spi_data <= (byte_counter[0] == 0) ? 8'hFF : 8'hE0;
                     end
                     
                     // Drawing the background
