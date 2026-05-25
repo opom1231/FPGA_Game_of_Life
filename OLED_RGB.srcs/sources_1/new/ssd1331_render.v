@@ -189,7 +189,7 @@ module ssd1331_render(
                         end
                     end
                     
-                    else if ((pixel_x >= box_x && pixel_x <= box_x + 3) && (pixel_y >= box_y && pixel_y <= box_y + 3)) begin
+                    else if ((pixel_x >= box_x && pixel_x <= box_x + 10) && (pixel_y >= box_y && pixel_y <= box_y + 10)) begin
                         spi_data <= (byte_counter[0] == 0) ? 8'hFF : 8'hE0;
                     end
                     
