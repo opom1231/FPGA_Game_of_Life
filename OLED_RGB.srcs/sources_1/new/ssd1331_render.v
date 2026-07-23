@@ -84,6 +84,7 @@ module ssd1331_render(
     localparam STATE_PULSE = 3'd2;
     localparam STATE_WAIT = 3'd3;
     localparam STATE_NEXT_BYTE = 3'd4;
+    localparam STATE_FETCH = 3'd5;
       
     // Frame counter
     always @(posedge clk) begin
@@ -119,8 +120,10 @@ module ssd1331_render(
             case (state)
                 STATE_IDLE: begin
                     if (frame_tick) begin
-                        state <= STATE_READY;
+                        state <= STATE_FETCH;
                         byte_counter <= 0;
+                        pixel_x <= 0;
+                        pixel_y <= 0;
                                             
                     end
                     
@@ -129,12 +132,16 @@ module ssd1331_render(
                     end
        
                 end
+                
+                STATE_FETCH: begin
+                    state <= STATE_READY;
+                end
                     
                 STATE_READY: begin
                     render_dc <= 1; // Set dc pin on board on
                     spi_start <= 1;
-                    if (byte_counter[0] == 0) begin
-                        spi_data <= 8'h00;
+                    if (pixel_alive == 1'b1) begin
+                        spi_data <= (byte_counter[0] == 0) ? 8'hFF : 8'hE0;
                     end else begin
                         spi_data <= 8'h00;
                     end
@@ -163,11 +170,21 @@ module ssd1331_render(
                 STATE_NEXT_BYTE: begin
                     if(byte_counter == BYTE_MAX) begin
                         state <= STATE_IDLE;    
-                    end
-                    
-                    else begin
+                    end else begin
                         byte_counter <= byte_counter + 1;
-                        state <= STATE_READY;  
+                        state <= STATE_FETCH;  
+                        
+                        if (byte_counter[0] == 1) begin
+                            if (pixel_x == 95) begin
+                                pixel_x <= 0;
+                                pixel_y <= pixel_y + 1;
+                            
+                            end else begin
+                                pixel_x <= pixel_x + 1;
+                            end
+                        
+                        end                    
+                    
                     end
                     
                 end
