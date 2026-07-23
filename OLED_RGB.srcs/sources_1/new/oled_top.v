@@ -80,10 +80,7 @@ module oled_top(
         // Global inputs
         .clk(clk),
         .rst(rst),
-        .btnU(btnU),
-        .btnR(btnR),
-        .btnL(btnL),
-        .btnD(btnD),
+
         // Mux and spi_master connections
         .init_done(init_done), // Input sent by init_engine. Are we done startup sequence?
         .spi_status(spi_status), // Input sent by spi_master. Are we currently sending data?
