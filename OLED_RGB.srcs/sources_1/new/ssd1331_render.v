@@ -29,10 +29,19 @@ module ssd1331_render(
     input init_done, // Needs to know when initialization is done
     input spi_status, // Are we currently transmitting? 
     
+    input pixel_state,
+    
+    output reg render_done,
+    
     output reg render_dc, // Controls d/c mux 
     output reg spi_start, // Controls SPI start mux
-    output reg [7:0] spi_data // Sends pixel data into mux 
+    output reg [7:0] spi_data, // Sends pixel data into mux 
+    output reg frame_tick,
+    
+    output [12:0] read_addr
     );
+    
+    assign read_addr = (pixel_y * 96) + pixel_x;
     
     // For testing
     parameter FRAME_MAX = 21'd1666666;
@@ -42,35 +51,14 @@ module ssd1331_render(
     
     reg [13:0] byte_counter; // We need to send a total of 12,288 bytes to control the screen every frame tick
     reg [20:0] frame_timer; // @60Hz we must count up to 16.67 ms per frame -> 1.67M clock cycles
-    reg frame_tick;
   
     // Cell parameters
     reg [6:0] pixel_x; // 96 pixel width
     reg [5:0] pixel_y; // 64 pixel height 
     
-    wire [12:0] read_addr = (pixel_y * 96) + pixel_x;
-    
-    wire pixel_alive;
-    
-   frame_ram display_ram(
-   // Port A: Display (read only)
-    .clka(clk),
-    .ena(1'b1), // always on
-    .wea(1'b0), // never writes from this module
-    .addra(read_addr), // where data will be read from
-    .dina(1'b0), // data in (unused)
-    .douta(pixel_alive), // purpose of this port (1 = alive, 0 = dead)
-    
-   // Port B: Computing
-    .clkb(clk),
-    .enb(1'b0),
-    .web(1'b0),
-    .addrb(13'd0),
-    .dinb(1'b0),
-    .doutb()
-   
-   
-   );
+    wire [12:0] prev_frame; // Keep track of alive cells in current frame
+     
+
     // Default values
     initial begin
         render_dc = 1'b1;
@@ -140,8 +128,9 @@ module ssd1331_render(
                 STATE_READY: begin
                     render_dc <= 1; // Set dc pin on board on
                     spi_start <= 1;
-                    if (pixel_alive == 1'b1) begin
+                    if (pixel_state == 1'b1) begin
                         spi_data <= (byte_counter[0] == 0) ? 8'hFF : 8'hE0;
+                        
                     end else begin
                         spi_data <= 8'h00;
                     end
