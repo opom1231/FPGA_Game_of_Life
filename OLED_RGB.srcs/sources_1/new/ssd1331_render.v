@@ -24,44 +24,43 @@ module ssd1331_render(
     // global
     input clk,
     input rst,
-    input btn,
-    
+   
     // Obtained by render_engine in oled_top.v
     input init_done, // Needs to know when initialization is done
     input spi_status, // Are we currently transmitting? 
     
+    input pixel_state,
+    
+    output reg render_done,
+    
     output reg render_dc, // Controls d/c mux 
     output reg spi_start, // Controls SPI start mux
-    output reg [7:0] spi_data // Sends pixel data into mux 
+    output reg [7:0] spi_data, // Sends pixel data into mux 
+    output reg frame_tick,
+    
+    output [12:0] read_addr
     );
+    
+    assign read_addr = (pixel_y * 96) + pixel_x;
     
     // For testing
     parameter FRAME_MAX = 21'd1666666;
     parameter BYTE_MAX = 14'd12287;
     
-    reg [4:0] state;
+    reg [2:0] state;
     
     reg [13:0] byte_counter; // We need to send a total of 12,288 bytes to control the screen every frame tick
     reg [20:0] frame_timer; // @60Hz we must count up to 16.67 ms per frame -> 1.67M clock cycles
-    reg frame_tick;
-    
-    wire color_mux;
-    
-    reg btn_ff1, btn_ff2;
-    reg [15:0] color_palette [0:3];
-    reg [1:0] color_index;
-    wire [15:0] current_color = color_palette[color_index];
-    
+  
+    // Cell parameters
+    reg [6:0] pixel_x; // 96 pixel width
+    reg [5:0] pixel_y; // 64 pixel height   
+
     // Default values
     initial begin
         render_dc = 1'b1;
         spi_start = 1'b0;
         spi_data = 8'h00;
-        
-        color_palette[0] = 16'h0000; // Black
-        color_palette[1] = 16'hF800; // Red
-        color_palette[2] = 16'h07E0; // Green
-        color_palette[3] = 16'h001F; // Blue
     end
     
     // States
@@ -70,31 +69,8 @@ module ssd1331_render(
     localparam STATE_PULSE = 3'd2;
     localparam STATE_WAIT = 3'd3;
     localparam STATE_NEXT_BYTE = 3'd4;
-    
-    // Buton edge detection
-    always @(posedge clk) begin
-        if (rst) begin
-            btn_ff1 <= 0;
-            btn_ff2 <= 0;
-        end else begin 
-            btn_ff1 <= btn; // Sample per posedge
-            btn_ff2 <= btn_ff1; // Keep track of the last press
-        end
-    end
-    
-    wire btn_pulse = (btn_ff1 == 1) && (btn_ff2 == 0); // Send pulse when we go from 0 to 1
-    
-    // Color index switching
-    always @(posedge clk) begin
-        if(rst) begin 
-            color_index <= 0;
-        end
-        
-        else if (btn_pulse) begin
-            color_index <= color_index + 1;
-        end
-    end
-    
+    localparam STATE_FETCH = 3'd5;
+      
     // Frame counter
     always @(posedge clk) begin
         if (rst) begin
@@ -129,8 +105,11 @@ module ssd1331_render(
             case (state)
                 STATE_IDLE: begin
                     if (frame_tick) begin
-                        state <= STATE_READY;
+                        state <= STATE_FETCH;
                         byte_counter <= 0;
+                        pixel_x <= 0;
+                        pixel_y <= 0;
+                                            
                     end
                     
                     else begin
@@ -138,15 +117,19 @@ module ssd1331_render(
                     end
        
                 end
+                
+                STATE_FETCH: begin
+                    state <= STATE_READY;
+                end
                     
                 STATE_READY: begin
                     render_dc <= 1; // Set dc pin on board on
                     spi_start <= 1;
-                    
-                    if (byte_counter[0] == 0) begin
-                        spi_data <= current_color[15:8];   // load high byte (even)
+                    if (pixel_state == 1'b1) begin
+                        spi_data <= (byte_counter[0] == 0) ? 8'hFF : 8'hE0;
+                        
                     end else begin
-                        spi_data <= current_color[7:0];   // load low byte (odd)
+                        spi_data <= 8'h00;
                     end
                     
                     state <= STATE_PULSE; // We need to buffer for a cycle while data transfer starts
@@ -173,17 +156,25 @@ module ssd1331_render(
                 STATE_NEXT_BYTE: begin
                     if(byte_counter == BYTE_MAX) begin
                         state <= STATE_IDLE;    
+                    end else begin
+                        byte_counter <= byte_counter + 1;
+                        state <= STATE_FETCH;  
+                        
+                        if (byte_counter[0] == 1) begin
+                            if (pixel_x == 95) begin
+                                pixel_x <= 0;
+                                pixel_y <= pixel_y + 1;
+                            
+                            end else begin
+                                pixel_x <= pixel_x + 1;
+                            end
+                        
+                        end                    
+                    
                     end
                     
-                    else begin
-                        byte_counter <= byte_counter + 1;
-                        state <= STATE_READY;
-                    end 
-                
                 end
-            
             endcase
-       
         end        
         
     end
