@@ -23,10 +23,10 @@
 module oled_top(
     input clk,
     input rst,
-    input btnU,
-    input btnD,
-    input btnL,
-    input btnR,
+//    input btnU,
+//    input btnD,
+//    input btnL,
+//    input btnR,
     
     
     output oled_dc,

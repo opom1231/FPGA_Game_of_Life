@@ -54,10 +54,7 @@ module ssd1331_render(
   
     // Cell parameters
     reg [6:0] pixel_x; // 96 pixel width
-    reg [5:0] pixel_y; // 64 pixel height 
-    
-    wire [12:0] prev_frame; // Keep track of alive cells in current frame
-     
+    reg [5:0] pixel_y; // 64 pixel height   
 
     // Default values
     initial begin
