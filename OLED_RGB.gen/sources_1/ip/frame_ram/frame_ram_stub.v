@@ -2,7 +2,7 @@
 // Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
 // --------------------------------------------------------------------------------
 // Tool Version: Vivado v.2024.1 (win64) Build 5076996 Wed May 22 18:37:14 MDT 2024
-// Date        : Sun Aug  2 17:45:42 2026
+// Date        : Mon Aug  3 16:21:03 2026
 // Host        : mc6030-01 running 64-bit major release  (build 9200)
 // Command     : write_verilog -force -mode synth_stub {w:/Desktop/FPGA
 //               Projects/OLED_RGB/OLED_RGB/OLED_RGB.gen/sources_1/ip/frame_ram/frame_ram_stub.v}

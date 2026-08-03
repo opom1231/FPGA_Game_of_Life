@@ -42,6 +42,8 @@ module compute_engine(
 
     reg center_cell_state;
     
+    // We need to wait a full clock cycle to register incoming address into ram
+    reg read_wait;
    
     
     // States
@@ -65,6 +67,7 @@ module compute_engine(
         if (rst) begin
             state <= 0;
             compute_write_en <= 0;
+            read_wait <= 0;
         end
         
         else begin
@@ -83,111 +86,151 @@ module compute_engine(
                     // Check top left
                     if (compute_x > 0 && compute_y > 0) begin 
                         compute_addr <= (((compute_y - 1) * 96) + (compute_x - 1));
-                    end 
-                    
+                    end
                     state <= STATE_FETCH_TL;
                 end 
                 
                 STATE_FETCH_TL: begin
-                    // Double check boundary before added neighbour state 
-                    // Requested from the last clock cycle
-                    if (compute_x > 0 && compute_y > 0) begin
-                        neighbour_count <= neighbour_count + compute_state;
-                    end 
-                    
-                    if (compute_y > 0) begin
-                        compute_addr <= (((compute_y - 1) * 96) + (compute_x)); 
-                    end
-                    
-                    state <= STATE_FETCH_T;
+                    if (!read_wait) begin
+                        read_wait <= 1; // Cycle to let BRAM fetch data
+                    end else begin
+                        read_wait <= 0; 
+                        // Double check boundary before added neighbour state 
+                        // Requested from the last clock cycle
+                        if (compute_x > 0 && compute_y > 0) begin
+                            neighbour_count <= neighbour_count + compute_state;
+                        end 
+                        
+                        if (compute_y > 0) begin
+                            compute_addr <= (((compute_y - 1) * 96) + (compute_x)); 
+                        end
+                        state <= STATE_FETCH_T;
+                    end    
+                   
                 end
                 
                 STATE_FETCH_T: begin
-                    if (compute_y > 0) begin
-                        neighbour_count <= neighbour_count + compute_state;
+                    if (!read_wait) begin
+                            read_wait <= 1; // Cycle to let BRAM fetch data
+                    end else begin
+                        read_wait <= 0;                    
+                        if (compute_y > 0) begin
+                            neighbour_count <= neighbour_count + compute_state;
+                        end
+                        
+                        if (compute_y > 0 && compute_x < 95) begin
+                            compute_addr <= (((compute_y - 1) * 96) + (compute_x + 1)); 
+                        end
+                        state <= STATE_FETCH_TR;
                     end
-                    
-                    if (compute_y > 0 && compute_x < 95) begin
-                        compute_addr <= (((compute_y - 1) * 96) + (compute_x + 1)); 
-                    end
-                    
-                    state <= STATE_FETCH_TR;
                 end
                 
                 STATE_FETCH_TR: begin
-                    if (compute_y > 0 && compute_x < 95) begin
-                        neighbour_count <= neighbour_count + compute_state;
+                    if (!read_wait) begin
+                        read_wait <= 1; // Cycle to let BRAM fetch data
+                    end else begin
+                        read_wait <= 0;                    
+                        if (compute_y > 0 && compute_x < 95) begin
+                            neighbour_count <= neighbour_count + compute_state;
+                        end
+                        
+                        if (compute_x > 0) begin
+                            compute_addr <= (((compute_y) * 96) + (compute_x - 1));
+                        end
+                        state <= STATE_FETCH_L;
                     end
-                    
-                    if (compute_x > 0) begin
-                        compute_addr <= (((compute_y) * 96) + (compute_x - 1));
-                    end
-                    
-                    state <= STATE_FETCH_L;
                 end
                 
                 STATE_FETCH_L: begin
-                    if (compute_x > 0) begin
-                        neighbour_count <= neighbour_count + compute_state;
-                    end
-                    
-                    if (compute_x < 95) begin
-                        compute_addr <= (((compute_y) * 96) + (compute_x + 1));
-                    end
-                    
-                    state <= STATE_FETCH_R;
+                    if (!read_wait) begin
+                        read_wait <= 1; // Cycle to let BRAM fetch data
+                    end else begin
+                        read_wait <= 0;             
+                        if (compute_x > 0) begin
+                            neighbour_count <= neighbour_count + compute_state;
+                        end
+                        
+                        if (compute_x < 95) begin
+                            compute_addr <= (((compute_y) * 96) + (compute_x + 1));
+                        end
+                        
+                        state <= STATE_FETCH_R;
+                    end    
                 end
                 
                 STATE_FETCH_R: begin
-                    if (compute_x < 95) begin
-                        neighbour_count <= neighbour_count + compute_state;
+                    if (!read_wait) begin
+                        read_wait <= 1; // Cycle to let BRAM fetch data
+                    end else begin
+                        read_wait <= 0;                    
+                        if (compute_x < 95) begin
+                            neighbour_count <= neighbour_count + compute_state;
+                        end
+                        
+                        if (compute_x > 0 && compute_y < 63) begin
+                            compute_addr <= (((compute_y + 1) * 96) + (compute_x - 1));
+                        end
+                        state <= STATE_FETCH_BL;
                     end
-                    
-                    if (compute_x > 0 && compute_y < 63) begin
-                        compute_addr <= (((compute_y + 1) * 96) + (compute_x - 1));
-                    end
-                    
-                    state <= STATE_FETCH_BL;
                 end
                 
                 STATE_FETCH_BL: begin
-                    if (compute_x > 0 && compute_y < 63) begin
-                        neighbour_count <= neighbour_count + compute_state;
+                    if (!read_wait) begin
+                        read_wait <= 1; // Cycle to let BRAM fetch data
+                    end else begin  
+                        read_wait <= 0;                   
+                        if (compute_x > 0 && compute_y < 63) begin
+                            neighbour_count <= neighbour_count + compute_state;
+                        end
+                        
+                        if (compute_y < 63) begin
+                            compute_addr <= (((compute_y + 1) * 96) + (compute_x));
+                        end
+                        state <= STATE_FETCH_B;
                     end
-                    
-                    if (compute_y < 63) begin
-                        compute_addr <= (((compute_y + 1) * 96) + (compute_x));
-                    end
-                    
-                    state <= STATE_FETCH_B;
-                
                 end
                 
                 STATE_FETCH_B: begin
-                    if (compute_y < 63) begin
-                        neighbour_count <= neighbour_count + compute_state;
-                    end
-                    
-                    if (compute_x < 95 && compute_y < 63) begin
-                        compute_addr <= (((compute_y + 1) * 96) + (compute_x + 1));
-                    end
-                    
-                    state <= STATE_FETCH_BR;
+                    if (!read_wait) begin
+                        read_wait <= 1; // Cycle to let BRAM fetch data
+                    end else begin
+                        read_wait <= 0;             
+                        if (compute_y < 63) begin
+                            neighbour_count <= neighbour_count + compute_state;
+                        end
+                        
+                        if (compute_x < 95 && compute_y < 63) begin
+                            compute_addr <= (((compute_y + 1) * 96) + (compute_x + 1));
+                        end 
+                        state <= STATE_FETCH_BR;
+                    end    
+                        
                 end
                 
                 STATE_FETCH_BR: begin
-                    if (compute_x < 95 && compute_y < 63) begin
-                        neighbour_count <= neighbour_count + compute_state;
-                    end
-                    
-                    // Now check original cell state
-                    compute_addr <= (((compute_y) * 96) + (compute_x));
-                    state <= STATE_FETCH_CENTER;
+                    if (!read_wait) begin
+                        read_wait <= 1; // Cycle to let BRAM fetch data
+                    end else begin
+                        read_wait <= 0;                 
+                        if (compute_x < 95 && compute_y < 63) begin
+                            neighbour_count <= neighbour_count + compute_state;
+                        end
+                        
+                        // Now check original cell state
+                        compute_addr <= (((compute_y) * 96) + (compute_x));
+                        state <= STATE_FETCH_CENTER;
+                    end    
+                        
                 end
                 
                 STATE_FETCH_CENTER: begin
-                    center_cell_state <= compute_state;
-                    state <= STATE_WRITE;
+                    if (!read_wait) begin
+                        read_wait <= 1; // Cycle to let BRAM fetch data
+                    end else begin 
+                        read_wait <= 0;         
+                        center_cell_state <= compute_state;
+                        state <= STATE_WRITE;
+                    end
                 end
                 
                 STATE_WRITE: begin
