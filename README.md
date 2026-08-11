@@ -12,9 +12,18 @@ Instead of running on a standard CPU, the simulation is built directly into the 
 ## Demonstrations
 
 * **Still Life:** mathematically provable permanence, no logic needed to sustain it
+<img width="1591" height="1451" alt="IMG_1202" src="https://github.com/user-attachments/assets/a27471f7-156f-483a-a106-aab2d4b88987" />
+
 * **Oscillator:** tests correct handling of periodic, synchronized state changes
+https://github.com/user-attachments/assets/8c87a036-5b08-4d16-9517-1c9a02013b2c
+
 * **Spaceship (Glider):** validates the compute engine correctly propagates motion across cell boundaries
+
 * **Methuselah (Acorn):** stress-tests the compute engine with rapidly growing, unpredictable neighbor counts
+
+
+
+
 * **Glider Gun:** demonstrates the engine sustaining indefinite, non-decaying activity
 
 ## Tech Stack
